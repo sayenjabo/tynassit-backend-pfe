@@ -18,7 +18,8 @@ app.use(express.json());
 app.use(cors({
   origin: [
     "http://localhost:8080",
-    "https://tynassit.vercel.app" // your Vercel URL
+    "http://localhost:5173",
+    "admin-dashbord-mypfe.vercel.app" // we'll update this after Vercel deploy
   ]
 }));
 // ─── Health Check ─────────────────────────────────────────────────────────────
