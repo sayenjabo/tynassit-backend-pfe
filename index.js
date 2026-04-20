@@ -16,8 +16,10 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:8080', // your React dev server URL
-  credentials: true,
+  origin: [
+    "http://localhost:8080",
+    "https://tynassit.vercel.app" // your Vercel URL
+  ]
 }));
 // ─── Health Check ─────────────────────────────────────────────────────────────
 
