@@ -19,8 +19,11 @@ app.use(cors({
   origin: [
     "http://localhost:8080",
     "http://localhost:5173",
-    "admin-dashbord-mypfe.vercel.app" // we'll update this after Vercel deploy
-  ]
+    "https://admin-dashbord-mypfe.vercel.app"
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 // ─── Health Check ─────────────────────────────────────────────────────────────
 
