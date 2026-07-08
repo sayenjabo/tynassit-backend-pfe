@@ -9,6 +9,7 @@ const adminAuthRoutes     = require('./routes/admin.auth.routes');
 const companyAuthRoutes   = require('./routes/company.auth.routes');
 const adminCompanyRoutes  = require('./routes/admin.companies.routes');
 const adminTrainingRoutes = require('./routes/admin.trainings.routes');
+const adminDeviceRoutes   = require('./routes/admin.devices.routes');
 const sessionRoutes       = require('./routes/session.routes');
 const employeeRoutes      = require('./routes/employee.routes');
 const deviceRoutes        = require('./routes/device.routes');
@@ -46,6 +47,7 @@ app.use('/api/company/devices',   deviceRoutes);
 app.use('/api/admin/auth',      adminAuthRoutes);
 app.use('/api/admin/companies', adminCompanyRoutes);
 app.use('/api/admin/trainings', adminTrainingRoutes);
+app.use('/api/admin/devices',   adminDeviceRoutes);
 
 // ─── Session Routes ───────────────────────────────────────────────────────────
 

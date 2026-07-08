@@ -218,3 +218,45 @@ exports.updateDevice = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ─── Admin — Voir tous les casques ────────────────────────────────────────────
+
+exports.getAllDevices = async (req, res) => {
+  try {
+    const { companyId } = req.query; // filtre optionnel ?companyId=...
+
+    const filter = {};
+    if (companyId) filter.company = companyId;
+
+    const devices = await Device.find(filter)
+      .select('-deviceToken -activationCode')
+      .populate('company', 'companyName email')
+      .sort({ createdAt: -1 });
+
+    res.json({ devices });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ─── Admin — Révoquer n'importe quel casque ───────────────────────────────────
+
+exports.adminRevokeDevice = async (req, res) => {
+  try {
+    const device = await Device.findById(req.params.id);
+
+    if (!device) {
+      return res.status(404).json({ message: 'Device not found' });
+    }
+
+    device.isActive = false;
+    device.revokedAt = new Date();
+    device.deviceToken = null;
+    device.company = null;
+    await device.save();
+
+    res.json({ message: 'Device revoked successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
