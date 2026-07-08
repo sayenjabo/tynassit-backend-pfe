@@ -1,16 +1,17 @@
 const Session = require('../models/session');
 const Company = require('../models/company');
 const Training = require('../models/training');
+const Employee = require('../models/employee');
 
 // ─── Submit Session (Quest app) ───────────────────────────────────────────────
-// Called by the Quest app when a training is completed
 
 exports.submitSession = async (req, res) => {
   try {
-    const companyId = req.user.id; // from JWT (company token)
+    const companyId = req.user.id;
 
     const {
       trainingId,
+      employeeId, // FIX #4 — now accepted from Quest app
       startedAt,
       completedAt,
       score,
@@ -19,15 +20,13 @@ exports.submitSession = async (req, res) => {
       notes,
     } = req.body;
 
-    // ─── Validation ───────────────────────────────────────────────────────────
-
     if (!trainingId || !startedAt || !completedAt || score === undefined || passed === undefined) {
       return res.status(400).json({
         message: 'trainingId, startedAt, completedAt, score and passed are required',
       });
     }
 
-    // Verify the training is actually assigned to this company
+    // Verify training is assigned to this company
     const company = await Company.findById(companyId);
     const isAssigned = company.assignedTrainings.some(
       (id) => id.toString() === trainingId
@@ -42,8 +41,15 @@ exports.submitSession = async (req, res) => {
       return res.status(404).json({ message: 'Training not found' });
     }
 
-    // ─── Calculate duration ───────────────────────────────────────────────────
+    // FIX #4 — if employeeId provided, verify they belong to this company
+    if (employeeId) {
+      const employee = await Employee.findOne({ _id: employeeId, company: companyId });
+      if (!employee) {
+        return res.status(404).json({ message: 'Employee not found or does not belong to your company' });
+      }
+    }
 
+    // Calculate duration
     const start = new Date(startedAt);
     const end = new Date(completedAt);
     const durationSeconds = Math.round((end - start) / 1000);
@@ -52,11 +58,10 @@ exports.submitSession = async (req, res) => {
       return res.status(400).json({ message: 'completedAt must be after startedAt' });
     }
 
-    // ─── Create session ───────────────────────────────────────────────────────
-
     const session = await Session.create({
       company: companyId,
       training: trainingId,
+      employee: employeeId || null, // FIX #4
       startedAt: start,
       completedAt: end,
       durationSeconds,
@@ -66,27 +71,45 @@ exports.submitSession = async (req, res) => {
       notes: notes || null,
     });
 
-    res.status(201).json({
-      message: 'Session saved successfully',
-      session,
-    });
+    // FIX #4 — auto-update the matching training milestone to 'completed'
+    if (employeeId && passed) {
+      const employee = await Employee.findById(employeeId);
+      if (employee) {
+        const milestone = employee.milestones.find(
+          (m) =>
+            m.type === 'training' &&
+            m.module === training.title &&
+            m.status !== 'completed'
+        );
+        if (milestone) {
+          milestone.status = 'completed';
+          milestone.score = score;
+          milestone.completedAt = end;
+          await employee.save();
+        }
+      }
+    }
+
+    res.status(201).json({ message: 'Session saved successfully', session });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ─── Get Company's Own Sessions (Quest app) ───────────────────────────────────
+// ─── Get Company's Own Sessions ───────────────────────────────────────────────
 
 exports.getMySessions = async (req, res) => {
   try {
     const companyId = req.user.id;
-    const { trainingId } = req.query;
+    const { trainingId, employeeId } = req.query;
 
     const filter = { company: companyId };
     if (trainingId) filter.training = trainingId;
+    if (employeeId) filter.employee = employeeId;
 
     const sessions = await Session.find(filter)
       .populate('training', 'title category')
+      .populate('employee', 'name accessCode department')
       .sort({ completedAt: -1 });
 
     res.json({ sessions });
@@ -99,15 +122,17 @@ exports.getMySessions = async (req, res) => {
 
 exports.getAllSessions = async (req, res) => {
   try {
-    const { companyId, trainingId } = req.query;
+    const { companyId, trainingId, employeeId } = req.query;
 
     const filter = {};
     if (companyId) filter.company = companyId;
     if (trainingId) filter.training = trainingId;
+    if (employeeId) filter.employee = employeeId;
 
     const sessions = await Session.find(filter)
       .populate('company', 'companyName email')
       .populate('training', 'title category')
+      .populate('employee', 'name accessCode department')
       .sort({ completedAt: -1 });
 
     res.json({ sessions });
@@ -235,7 +260,6 @@ exports.statsOneCompany = async (req, res) => {
       return res.status(404).json({ message: 'Company not found' });
     }
 
-    // Per training breakdown for this company
     const breakdown = await Session.aggregate([
       { $match: { company: company._id } },
       {

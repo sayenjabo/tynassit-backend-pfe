@@ -24,7 +24,7 @@ const milestoneSchema = new mongoose.Schema(
     },
     module: {
       type: String,
-      default: null, // e.g. 'Fire Evacuation', 'Forklift Training'
+      default: null,
     },
     score: {
       type: Number,
@@ -66,11 +66,20 @@ const employeeSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ─── VR Access Code ───────────────────────────────────────────────────────
+    // ─── VR Access Code: format XX-001 ────────────────────────────────────────
+    // XX  = 2-letter prefix from company name
+    // 001 = auto-incremented per company
     accessCode: {
       type: String,
       unique: true,
       required: true,
+    },
+
+    // ─── PIN (bcrypt hashed) ──────────────────────────────────────────────────
+    // 4-digit PIN set by the company — never stored in plain text
+    pin: {
+      type: String,
+      required: [true, 'PIN is required'],
     },
 
     // ─── Milestones ───────────────────────────────────────────────────────────

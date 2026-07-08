@@ -1,25 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const employeeController = require('../controllers/employee.controller');
-const { protect, companyOnly } = require('../middleware/auth.middleware');
+const { protect, companyOnly, deviceOnly } = require('../middleware/auth.middleware');
 
-// ─── VR Headset (public) ──────────────────────────────────────────────────────
+// ─── VR Headset — login employé (protégé par token casque) ───────────────────
+// Le casque doit être activé pour pouvoir connecter un employé
 
-// Employee logs in on the VR headset using their 6-digit code
-router.post('/login', employeeController.loginWithCode);
+router.post('/login', deviceOnly, employeeController.loginWithCode);
 
-// ─── Company Protected Routes ─────────────────────────────────────────────────
+// ─── Dashboard entreprise — CRUD employés ─────────────────────────────────────
 
 router.use(protect, companyOnly);
 
-// Employee CRUD
 router.post('/', employeeController.createEmployee);
 router.get('/', employeeController.getMyEmployees);
 router.get('/:id', employeeController.getEmployee);
 router.patch('/:id', employeeController.updateEmployee);
 router.delete('/:id', employeeController.deleteEmployee);
 
-// Milestone routes
+// Milestones
 router.post('/:id/milestones', employeeController.addMilestone);
 router.get('/:id/milestones', employeeController.getMilestones);
 router.patch('/:id/milestones/:milestoneId', employeeController.updateMilestone);

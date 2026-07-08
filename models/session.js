@@ -2,26 +2,10 @@ const mongoose = require('mongoose');
 
 const evaluationCriteriaSchema = new mongoose.Schema(
   {
-    criteriaName: {
-      type: String,
-      required: true,
-      trim: true,
-      // e.g. "Correct inspection procedure", "Identification of illegal items"
-    },
-    passed: {
-      type: Boolean,
-      required: true,
-    },
-    score: {
-      type: Number,
-      min: 0,
-      max: 100,
-      default: null,
-    },
-    notes: {
-      type: String,
-      default: null,
-    },
+    criteriaName: { type: String, required: true, trim: true },
+    passed: { type: Boolean, required: true },
+    score: { type: Number, min: 0, max: 100, default: null },
+    notes: { type: String, default: null },
   },
   { _id: false }
 );
@@ -39,61 +23,39 @@ const sessionSchema = new mongoose.Schema(
       required: true,
     },
 
+    // FIX #4 — link session to the specific employee who did it
+    employee: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Employee',
+      default: null, // optional for now — null = submitted without employee login
+    },
+
     // ─── Timing ───────────────────────────────────────────────────────────────
-    startedAt: {
-      type: Date,
-      required: true,
-    },
-    completedAt: {
-      type: Date,
-      required: true,
-    },
-    durationSeconds: {
-      type: Number, // calculated from startedAt → completedAt
-      required: true,
-    },
+    startedAt: { type: Date, required: true },
+    completedAt: { type: Date, required: true },
+    durationSeconds: { type: Number, required: true },
 
     // ─── Result ───────────────────────────────────────────────────────────────
-    score: {
-      type: Number,
-      min: 0,
-      max: 100,
-      required: true,
-    },
-    passed: {
-      type: Boolean,
-      required: true,
-    },
-    attemptNumber: {
-      type: Number,
-      default: 1, // incremented automatically based on previous sessions
-    },
+    score: { type: Number, min: 0, max: 100, required: true },
+    passed: { type: Boolean, required: true },
+    attemptNumber: { type: Number, default: 1 },
 
     // ─── Evaluation Criteria ──────────────────────────────────────────────────
-    evaluationCriteria: {
-      type: [evaluationCriteriaSchema],
-      default: [],
-    },
+    evaluationCriteria: { type: [evaluationCriteriaSchema], default: [] },
 
-    // ─── Extra context ────────────────────────────────────────────────────────
-    notes: {
-      type: String,
-      default: null,
-      // Optional free-text from the Quest app (e.g. specific incidents)
-    },
+    notes: { type: String, default: null },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// ─── Auto-calculate attemptNumber before saving ───────────────────────────────
+// Auto-calculate attemptNumber — scoped per employee if present, else per company
 sessionSchema.pre('save', async function () {
   if (this.isNew) {
-    const count = await mongoose.model('Session').countDocuments({
-      company: this.company,
-      training: this.training,
-    });
+    const filter = this.employee
+      ? { employee: this.employee, training: this.training }
+      : { company: this.company, training: this.training };
+
+    const count = await mongoose.model('Session').countDocuments(filter);
     this.attemptNumber = count + 1;
   }
 });

@@ -11,10 +11,11 @@ const adminCompanyRoutes  = require('./routes/admin.companies.routes');
 const adminTrainingRoutes = require('./routes/admin.trainings.routes');
 const sessionRoutes       = require('./routes/session.routes');
 const employeeRoutes      = require('./routes/employee.routes');
+const deviceRoutes        = require('./routes/device.routes');
 
 const app = express();
 
-app.use(express.json());
+// CORS avant express.json()
 app.use(cors({
   origin: [
     'http://localhost:8080',
@@ -26,18 +27,21 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
+app.use(express.json());
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 
 app.get('/', (req, res) => {
   res.json({ message: 'TynassIt API is running' });
 });
 
-// ─── Company Routes (Quest headset app) ──────────────────────────────────────
+// ─── Company Routes (dashboard) ───────────────────────────────────────────────
 
 app.use('/api/company/auth',      companyAuthRoutes);
 app.use('/api/company/employees', employeeRoutes);
+app.use('/api/company/devices',   deviceRoutes);
 
-// ─── Admin Routes (Tynass admin panel) ───────────────────────────────────────
+// ─── Admin Routes ─────────────────────────────────────────────────────────────
 
 app.use('/api/admin/auth',      adminAuthRoutes);
 app.use('/api/admin/companies', adminCompanyRoutes);
@@ -60,11 +64,7 @@ const MONGO_URL = process.env.MONGO_URL;
 
 mongoose
   .connect(MONGO_URL, {
-    serverApi: {
-      version: '1',
-      strict: true,
-      deprecationErrors: true,
-    },
+    serverApi: { version: '1', strict: true, deprecationErrors: true },
   })
   .then(async () => {
     await mongoose.connection.db.admin().command({ ping: 1 });

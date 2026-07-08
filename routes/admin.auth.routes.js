@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminAuthController = require('../controllers/admin.auth.controller');
-const { protect, superAdminOnly } = require('../middleware/auth.middleware');
+const { protect } = require('../middleware/auth.middleware');
 
 // ─── Public ───────────────────────────────────────────────────────────────────
 
@@ -12,8 +12,8 @@ router.post('/logout', adminAuthController.logout);
 
 router.get('/me', protect, adminAuthController.me);
 
-// ─── Setup (run once to seed first superadmin, then disable) ──────────────────
-
-router.post('/setup', adminAuthController.createSuperAdmin);
+// ─── FIX #3 — /setup is DISABLED ─────────────────────────────────────────────
+// Run it once manually via MongoDB Atlas or a seed script, then never again.
+// router.post('/setup', adminAuthController.createSuperAdmin); // ← DISABLED
 
 module.exports = router;
