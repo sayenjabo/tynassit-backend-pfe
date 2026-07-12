@@ -219,6 +219,65 @@ exports.updateDevice = async (req, res) => {
   }
 };
 
+// ─── Admin — Activer un casque pour n'importe quelle entreprise ──────────────
+
+exports.adminActivateDevice = async (req, res) => {
+  try {
+    const { activationCode, label, companyId } = req.body;
+
+    if (!activationCode || !companyId) {
+      return res.status(400).json({ message: 'activationCode and companyId are required' });
+    }
+
+    const device = await Device.findOne({ activationCode });
+
+    if (!device) {
+      return res.status(404).json({ message: 'Invalid activation code' });
+    }
+
+    if (device.isActive) {
+      return res.status(400).json({ message: 'Device is already activated' });
+    }
+
+    if (device.activationCodeExpires < new Date()) {
+      return res.status(400).json({ message: 'Activation code has expired — ask the device to generate a new one' });
+    }
+
+    // Generate device token scoped to the given companyId
+    const deviceToken = jwt.sign(
+      { id: companyId, type: 'device', metaUserId: device.metaUserId },
+      process.env.JWT_SECRET,
+      { expiresIn: '365d' }
+    );
+
+    const hashedToken = crypto.createHash('sha256').update(deviceToken).digest('hex');
+
+    device.company = companyId;
+    device.label = label || `Casque ${device.metaUserId.substring(0, 6)}`;
+    device.deviceToken = hashedToken;
+    device.isActive = true;
+    device.activatedAt = new Date();
+    device.activationCode = null;
+    device.activationCodeExpires = null;
+    await device.save();
+
+    res.json({
+      message: 'Device activated successfully',
+      device: {
+        id: device._id,
+        label: device.label,
+        metaUserId: device.metaUserId,
+        company: device.company,
+        activatedAt: device.activatedAt,
+      },
+      // Retourné une seule fois — doit être stocké dans Unity
+      deviceToken,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // ─── Admin — Voir tous les casques ────────────────────────────────────────────
 
 exports.getAllDevices = async (req, res) => {

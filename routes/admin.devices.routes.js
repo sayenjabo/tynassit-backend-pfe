@@ -5,6 +5,9 @@ const { protect, adminOnly } = require('../middleware/auth.middleware');
 
 router.use(protect, adminOnly);
 
+// Activer un casque pour n'importe quelle entreprise
+router.post('/activate', deviceController.adminActivateDevice);
+
 // Tous les casques (filtrable par ?companyId=)
 router.get('/', deviceController.getAllDevices);
 
