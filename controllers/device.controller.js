@@ -133,7 +133,7 @@ exports.checkDevice = async (req, res) => {
     const device = await Device.findOne({ metaUserId }).populate('company', 'companyName isActive');
 
     if (!device || !device.isActive) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: 'not_activated',
         message: 'Device not activated',
       });
