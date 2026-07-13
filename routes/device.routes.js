@@ -12,7 +12,6 @@ router.post('/request-activation', deviceController.requestActivation);
 router.post('/check', deviceController.checkDevice);
 
 // ─── Routes protégées (appelées par le dashboard entreprise) ──────────────────
-
 router.use(protect, companyOnly);
 
 // Étape 2 — Admin entre le code d'activation → casque activé
