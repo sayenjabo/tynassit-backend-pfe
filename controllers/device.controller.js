@@ -44,6 +44,8 @@ exports.requestActivation = async (req, res) => {
         isActive: false,
         company: null,
         deviceToken: null,
+        deviceTokenPlain: null,
+        deviceTokenPlainExpires: null,
       },
       { new: true, upsert: true }
     );
@@ -100,8 +102,11 @@ exports.activateDevice = async (req, res) => {
     device.deviceToken = hashedToken;
     device.isActive = true;
     device.activatedAt = new Date();
-    device.activationCode = null; // invalider le code après usage
+    device.activationCode = null;
     device.activationCodeExpires = null;
+    // Token brut stocké en même temps — un seul save
+    device.deviceTokenPlain = deviceToken;
+    device.deviceTokenPlainExpires = new Date(Date.now() + 60 * 1000);
     await device.save();
 
     res.json({
@@ -112,8 +117,6 @@ exports.activateDevice = async (req, res) => {
         metaUserId: device.metaUserId,
         activatedAt: device.activatedAt,
       },
-      // Ce token est retourné UNE SEULE FOIS — l'app Unity doit le stocker
-      deviceToken,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -140,10 +143,19 @@ exports.checkDevice = async (req, res) => {
     }
 
     if (!device.company || !device.company.isActive) {
-      return res.status(403).json({
+      return res.status(200).json({
         status: 'suspended',
         message: 'Company access has been suspended',
       });
+    }
+
+    // Retourner le token brut une seule fois si encore valide, puis l'effacer
+    let tokenToSend = null;
+    if (device.deviceTokenPlain && device.deviceTokenPlainExpires > new Date()) {
+      tokenToSend = device.deviceTokenPlain;
+      device.deviceTokenPlain = null;
+      device.deviceTokenPlainExpires = null;
+      await device.save();
     }
 
     res.json({
@@ -153,6 +165,7 @@ exports.checkDevice = async (req, res) => {
         companyName: device.company.companyName,
       },
       label: device.label,
+      deviceToken: tokenToSend, // null si déjà récupéré ou expiré
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -259,6 +272,9 @@ exports.adminActivateDevice = async (req, res) => {
     device.activatedAt = new Date();
     device.activationCode = null;
     device.activationCodeExpires = null;
+    // Token brut stocké en même temps — un seul save
+    device.deviceTokenPlain = deviceToken;
+    device.deviceTokenPlainExpires = new Date(Date.now() + 60 * 1000);
     await device.save();
 
     res.json({
@@ -270,8 +286,6 @@ exports.adminActivateDevice = async (req, res) => {
         company: device.company,
         activatedAt: device.activatedAt,
       },
-      // Retourné une seule fois — doit être stocké dans Unity
-      deviceToken,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -288,7 +302,7 @@ exports.getAllDevices = async (req, res) => {
     if (companyId) filter.company = companyId;
 
     const devices = await Device.find(filter)
-      .select('-deviceToken -activationCode')
+      .select('-deviceToken -deviceTokenPlain -deviceTokenPlainExpires -activationCode')
       .populate('company', 'companyName email')
       .sort({ createdAt: -1 });
 

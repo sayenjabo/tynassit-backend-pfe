@@ -41,6 +41,17 @@ const deviceSchema = new mongoose.Schema(
       default: null,
     },
 
+    // ─── Token brut temporaire (60s) — récupéré par Unity via checkDevice ────
+    // Effacé immédiatement après lecture
+    deviceTokenPlain: {
+      type: String,
+      default: null,
+    },
+    deviceTokenPlainExpires: {
+      type: Date,
+      default: null,
+    },
+
     // ─── Statut ───────────────────────────────────────────────────────────────
     isActive: {
       type: Boolean,
