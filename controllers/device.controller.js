@@ -2,6 +2,27 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const Device = require('../models/device');
 
+// ─── Trainings assignées au casque (appelé par Unity) ────────────────────────
+
+exports.getDeviceTrainings = async (req, res) => {
+  try {
+    const Company = require('../models/company');
+
+    const company = await Company.findById(req.user.id)
+      .populate('assignedTrainings');
+
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
+    const trainings = company.assignedTrainings.filter((t) => t.isActive);
+
+    res.json({ trainings });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 const generateActivationCode = () =>

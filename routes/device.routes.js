@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const deviceController = require('../controllers/device.controller');
-const { protect, companyOnly } = require('../middleware/auth.middleware');
+const { protect, companyOnly, deviceOnly } = require('../middleware/auth.middleware');
 
 // ─── Routes publiques (appelées par l'app Unity) ──────────────────────────────
 
@@ -11,7 +11,13 @@ router.post('/request-activation', deviceController.requestActivation);
 // Vérifier si le casque est déjà activé au démarrage
 router.post('/check', deviceController.checkDevice);
 
+// ─── Routes protégées par token casque (Unity) ────────────────────────────────
+
+// Récupérer les formations assignées à l'entreprise du casque
+router.get('/trainings', deviceOnly, deviceController.getDeviceTrainings);
+
 // ─── Routes protégées (appelées par le dashboard entreprise) ──────────────────
+
 router.use(protect, companyOnly);
 
 // Étape 2 — Admin entre le code d'activation → casque activé
