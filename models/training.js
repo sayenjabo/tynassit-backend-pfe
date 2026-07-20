@@ -16,15 +16,20 @@ const trainingSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Category is required'],
       trim: true,
-      // e.g. 'Customs Inspection', 'Electrician', 'Fire Safety', etc.
     },
     thumbnailUrl: {
       type: String,
       default: null,
     },
+    // ─── Unity scene name ─────────────────────────────────────────────────────
+    // Utilisé par Unity pour charger la bonne scène via SceneManager.LoadScene()
+    sceneName: {
+      type: String,
+      default: null,
+    },
     isActive: {
       type: Boolean,
-      default: true, // Tynass can hide a training without deleting it
+      default: true,
     },
   },
   {

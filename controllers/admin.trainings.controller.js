@@ -5,7 +5,7 @@ const Training = require('../models/training');
 exports.getAll = async (req, res) => {
   try {
     const trainings = await Training.find().sort({ createdAt: -1 });
-    res.json({ trainings });
+    res.json({ trainings }); // sceneName inclus automatiquement
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -19,8 +19,7 @@ exports.getOne = async (req, res) => {
     if (!training) {
       return res.status(404).json({ message: 'Training not found' });
     }
-
-    res.json({ training });
+    res.json({ training }); // sceneName inclus automatiquement
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -30,18 +29,21 @@ exports.getOne = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { title, description, category, thumbnailUrl } = req.body;
+    const { title, description, category, thumbnailUrl, sceneName } = req.body;
 
     if (!title || !category) {
       return res.status(400).json({ message: 'Title and category are required' });
     }
 
-    const training = await Training.create({ title, description, category, thumbnailUrl });
-
-    res.status(201).json({
-      message: 'Training created successfully',
-      training,
+    const training = await Training.create({
+      title,
+      description,
+      category,
+      thumbnailUrl,
+      sceneName: sceneName || null,
     });
+
+    res.status(201).json({ message: 'Training created successfully', training });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -51,7 +53,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { title, description, category, thumbnailUrl, isActive } = req.body;
+    const { title, description, category, thumbnailUrl, sceneName, isActive } = req.body;
 
     const training = await Training.findById(req.params.id);
     if (!training) {
@@ -62,6 +64,7 @@ exports.update = async (req, res) => {
     if (description !== undefined) training.description = description;
     if (category !== undefined) training.category = category;
     if (thumbnailUrl !== undefined) training.thumbnailUrl = thumbnailUrl;
+    if (sceneName !== undefined) training.sceneName = sceneName;
     if (isActive !== undefined) training.isActive = isActive;
 
     await training.save();
@@ -80,7 +83,6 @@ exports.remove = async (req, res) => {
     if (!training) {
       return res.status(404).json({ message: 'Training not found' });
     }
-
     res.json({ message: 'Training deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
