@@ -3,15 +3,15 @@ const Company = require('../models/company');
 const Training = require('../models/training');
 const Employee = require('../models/employee');
 
-// ─── Submit Session (Quest app) ───────────────────────────────────────────────
+// ─── Submit Session (Quest app — deviceOnly) ──────────────────────────────────
 
 exports.submitSession = async (req, res) => {
   try {
-    const companyId = req.user.id;
+    const companyId = req.user.id; // extrait du token casque via deviceOnly
 
     const {
       trainingId,
-      employeeId, // FIX #4 — now accepted from Quest app
+      employeeId,
       startedAt,
       completedAt,
       score,
@@ -26,8 +26,12 @@ exports.submitSession = async (req, res) => {
       });
     }
 
-    // Verify training is assigned to this company
+    // Vérifier que la formation est assignée à cette entreprise
     const company = await Company.findById(companyId);
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
     const isAssigned = company.assignedTrainings.some(
       (id) => id.toString() === trainingId
     );
@@ -35,21 +39,23 @@ exports.submitSession = async (req, res) => {
       return res.status(403).json({ message: 'This training is not assigned to your company' });
     }
 
-    // Verify training exists
+    // Vérifier que la formation existe
     const training = await Training.findById(trainingId);
     if (!training) {
       return res.status(404).json({ message: 'Training not found' });
     }
 
-    // FIX #4 — if employeeId provided, verify they belong to this company
+    // Vérifier que l'employé appartient à cette entreprise
+    let resolvedEmployeeId = null;
     if (employeeId) {
       const employee = await Employee.findOne({ _id: employeeId, company: companyId });
       if (!employee) {
         return res.status(404).json({ message: 'Employee not found or does not belong to your company' });
       }
+      resolvedEmployeeId = employee._id;
     }
 
-    // Calculate duration
+    // Calculer la durée côté serveur
     const start = new Date(startedAt);
     const end = new Date(completedAt);
     const durationSeconds = Math.round((end - start) / 1000);
@@ -61,7 +67,7 @@ exports.submitSession = async (req, res) => {
     const session = await Session.create({
       company: companyId,
       training: trainingId,
-      employee: employeeId || null, // FIX #4
+      employee: resolvedEmployeeId,
       startedAt: start,
       completedAt: end,
       durationSeconds,
@@ -71,9 +77,9 @@ exports.submitSession = async (req, res) => {
       notes: notes || null,
     });
 
-    // FIX #4 — auto-update the matching training milestone to 'completed'
-    if (employeeId && passed) {
-      const employee = await Employee.findById(employeeId);
+    // Auto-compléter le milestone si l'employé a réussi
+    if (resolvedEmployeeId && passed) {
+      const employee = await Employee.findById(resolvedEmployeeId);
       if (employee) {
         const milestone = employee.milestones.find(
           (m) =>
@@ -249,7 +255,7 @@ exports.statsByCompany = async (req, res) => {
   }
 };
 
-// ─── Stats for one specific Company (Admin) ───────────────────────────────────
+// ─── Stats for one Company (Admin) ────────────────────────────────────────────
 
 exports.statsOneCompany = async (req, res) => {
   try {
