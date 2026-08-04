@@ -1,28 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const sessionController = require('../controllers/session.controller');
-const { protect, companyOnly, adminOnly } = require('../middleware/auth.middleware');
+const { protect, companyOnly, adminOnly, deviceOnly } = require('../middleware/auth.middleware');
 
 // ─── Quest App Routes ─────────────────────────────────────────────────────────
 
-// Submit a completed session (called by Quest app after training ends)
-router.post('/submit', protect, companyOnly, sessionController.submitSession);
+// Submit a completed session (called by Quest app — requires device token)
+router.post('/submit', deviceOnly, sessionController.submitSession);
 
-// Get company's own session history
+// Get company's own session history (called by company dashboard)
 router.get('/my', protect, companyOnly, sessionController.getMySessions);
 
 // ─── Admin Routes ─────────────────────────────────────────────────────────────
 
-// Get all sessions (filterable by ?companyId=&trainingId=)
 router.get('/', protect, adminOnly, sessionController.getAllSessions);
-
-// Stats per training (for upgrading training content)
 router.get('/stats/trainings', protect, adminOnly, sessionController.statsByTraining);
-
-// Stats per company (for monitoring activity)
 router.get('/stats/companies', protect, adminOnly, sessionController.statsByCompany);
-
-// Full breakdown for one specific company
 router.get('/stats/companies/:id', protect, adminOnly, sessionController.statsOneCompany);
 
 module.exports = router;
