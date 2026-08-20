@@ -3,6 +3,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
+// ─── Route Imports ────────────────────────────────────────────────────────────
+
 const adminAuthRoutes     = require('./routes/admin.auth.routes');
 const companyAuthRoutes   = require('./routes/company.auth.routes');
 const adminCompanyRoutes  = require('./routes/admin.companies.routes');
@@ -11,16 +13,16 @@ const adminDeviceRoutes   = require('./routes/admin.devices.routes');
 const sessionRoutes       = require('./routes/session.routes');
 const employeeRoutes      = require('./routes/employee.routes');
 const deviceRoutes        = require('./routes/device.routes');
+const quizRoutes          = require('./routes/quiz.routes');
 
 const app = express();
 
+// CORS avant express.json()
 app.use(cors({
   origin: [
     'http://localhost:8080',
-    'http://localhost:8081',
-    'http://localhost:8082',
+    'http://localhost:5173',
     'https://admin-dashbord-mypfe.vercel.app',
-    'https://company-dashbord-mypfe.vercel.app',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -29,24 +31,37 @@ app.use(cors({
 
 app.use(express.json());
 
+// ─── Health Check ─────────────────────────────────────────────────────────────
+
 app.get('/', (req, res) => {
   res.json({ message: 'TynassIt API is running' });
 });
 
+// ─── Company Routes (dashboard) ───────────────────────────────────────────────
+
 app.use('/api/company/auth',      companyAuthRoutes);
 app.use('/api/company/employees', employeeRoutes);
 app.use('/api/company/devices',   deviceRoutes);
+app.use('/api/company',           quizRoutes);
+
+// ─── Admin Routes ─────────────────────────────────────────────────────────────
 
 app.use('/api/admin/auth',      adminAuthRoutes);
 app.use('/api/admin/companies', adminCompanyRoutes);
 app.use('/api/admin/trainings', adminTrainingRoutes);
 app.use('/api/admin/devices',   adminDeviceRoutes);
 
+// ─── Session Routes ───────────────────────────────────────────────────────────
+
 app.use('/api/sessions', sessionRoutes);
+
+// ─── 404 Handler ─────────────────────────────────────────────────────────────
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
+
+// ─── Database + Server ────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
 const MONGO_URL = process.env.MONGO_URL;
