@@ -22,8 +22,12 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:8080',
+    'http://localhost:8081',
+    'http://localhost:8082',
     'http://localhost:5173',
     'https://admin-dashbord-mypfe.vercel.app',
+    'https://company-dashbord-mypfe.vercel.app',
+    'https://company-dashbord-mypfe-jz138s6rn-jabos-projects-a7a8d889.vercel.app',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
