@@ -25,6 +25,7 @@ app.use(cors({
     'http://localhost:8082',
     'https://admin-dashbord-mypfe.vercel.app',
     'https://company-dashbord-mypfe.vercel.app',
+    'https://company-dashbord-mypfe-jz138s6rn-jabos-projects-a7a8d889.vercel.app',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
