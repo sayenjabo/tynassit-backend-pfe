@@ -13,6 +13,7 @@ const adminDeviceRoutes   = require('./routes/admin.devices.routes');
 const sessionRoutes       = require('./routes/session.routes');
 const employeeRoutes          = require('./routes/employee.routes');
 const deviceRoutes            = require('./routes/device.routes');
+const deviceSessionRoutes     = require('./routes/device.sessions.routes');
 const quizRoutes              = require('./routes/quiz.routes');
 const companyTrainingRoutes   = require('./routes/company.trainings.routes');
 
@@ -22,12 +23,8 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:8080',
-    'http://localhost:8081',
-    'http://localhost:8082',
     'http://localhost:5173',
     'https://admin-dashbord-mypfe.vercel.app',
-    'https://company-dashbord-mypfe.vercel.app',
-    'https://company-dashbord-mypfe-jz138s6rn-jabos-projects-a7a8d889.vercel.app',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -44,11 +41,12 @@ app.get('/', (req, res) => {
 
 // ─── Company Routes (dashboard) ───────────────────────────────────────────────
 
-app.use('/api/company/auth',      companyAuthRoutes);
-app.use('/api/company/employees', employeeRoutes);
-app.use('/api/company/devices',   deviceRoutes);
-app.use('/api/company/trainings', companyTrainingRoutes);
-app.use('/api/company',           quizRoutes);
+app.use('/api/company/auth',             companyAuthRoutes);
+app.use('/api/company/employees',        employeeRoutes);
+app.use('/api/company/devices/sessions', deviceSessionRoutes);
+app.use('/api/company/devices',          deviceRoutes);
+app.use('/api/company/trainings',        companyTrainingRoutes);
+app.use('/api/company',                  quizRoutes);
 
 // ─── Admin Routes ─────────────────────────────────────────────────────────────
 
