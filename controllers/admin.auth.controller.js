@@ -74,8 +74,7 @@ exports.me = async (req, res) => {
   }
 };
 
-// ─── Create First Superadmin (setup only) ─────────────────────────────────────
-// Call this once to seed the first superadmin, then disable or protect this route
+// ─── Create First Superadmin (setup only — route DISABLED) ────────────────────
 
 exports.createSuperAdmin = async (req, res) => {
   try {
@@ -97,6 +96,81 @@ exports.createSuperAdmin = async (req, res) => {
       message: 'Superadmin created successfully',
       admin: { id: admin._id, name: admin.name, email: admin.email, role: admin.role },
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ─── Staff Management (superadmin only) ───────────────────────────────────────
+
+exports.getStaff = async (req, res) => {
+  try {
+    const staff = await Admin.find({ role: 'staff' }).select('-password');
+    res.json({ staff });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.createStaff = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email and password are required' });
+    }
+
+    const existing = await Admin.findOne({ email });
+    if (existing) {
+      return res.status(409).json({ message: 'Email already registered' });
+    }
+
+    const hashed = await bcrypt.hash(password, 12);
+    const staff = await Admin.create({ name, email, password: hashed, role: 'staff' });
+
+    res.status(201).json({
+      staff: {
+        id: staff._id,
+        name: staff.name,
+        email: staff.email,
+        role: staff.role,
+        isActive: staff.isActive,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateStaff = async (req, res) => {
+  try {
+    const { name, email, isActive } = req.body;
+
+    const staff = await Admin.findOneAndUpdate(
+      { _id: req.params.id, role: 'staff' },
+      { name, email, isActive },
+      { new: true }
+    ).select('-password');
+
+    if (!staff) {
+      return res.status(404).json({ message: 'Staff not found' });
+    }
+
+    res.json({ staff });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deleteStaff = async (req, res) => {
+  try {
+    const staff = await Admin.findOneAndDelete({ _id: req.params.id, role: 'staff' });
+
+    if (!staff) {
+      return res.status(404).json({ message: 'Staff not found' });
+    }
+
+    res.json({ message: 'Staff deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
