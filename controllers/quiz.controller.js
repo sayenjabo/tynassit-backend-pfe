@@ -5,7 +5,7 @@ const Quiz = require('../models/quiz');
 
 exports.getQuizForDevice = async (req, res) => {
   try {
-    const { trainingId } = req.params;
+    const { quizId, answers, employeeId } = req.params;
     const companyId = req.user.id; // extrait du token casque
 
     const quiz = await Quiz.findOne({
@@ -73,7 +73,21 @@ exports.submitQuiz = async (req, res) => {
     const score = Math.round((correctCount / totalQuestions) * 100);
     const passed = score >= quiz.passingScore;
 
+    const stored = await QuizResult.create({
+      company:        companyId,
+      training:       quiz.training,
+      employee:       employeeId,
+      quiz:           quiz._id,
+      score,
+      passed,
+      correctCount,
+      totalQuestions,
+      passingScore:   quiz.passingScore,
+      consumed:       false,
+    });
+
     res.json({
+      quizResultId: stored._id,
       score,
       passed,
       correctCount,

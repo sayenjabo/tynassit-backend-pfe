@@ -2,7 +2,7 @@ const Session = require('../models/session');
 const Company = require('../models/company');
 const Training = require('../models/training');
 const Employee = require('../models/employee');
-
+const QuizResult = require('../models/quizResult');
 // ─── Submit Session (Quest app — deviceOnly) ──────────────────────────────────
 
 exports.submitSession = async (req, res) => {
@@ -14,20 +14,38 @@ exports.submitSession = async (req, res) => {
       employeeId,
       startedAt,
       completedAt,
-      score,
-      passed,
+      quizResultId, 
       evaluationCriteria,
       notes,
     } = req.body;
 
-    if (!trainingId || !startedAt || !completedAt || score === undefined || passed === undefined) {
+    if (!trainingId || !startedAt || !completedAt || !quizResultId) {
       return res.status(400).json({
-        message: 'trainingId, startedAt, completedAt, score and passed are required',
+        message: 'trainingId, startedAt, completedAt and quizResultId are required',
       });
     }
 
-    // Vérifier que la formation est assignée à cette entreprise
+    // ─── Look up the server-computed quiz result ───────────────────────────
+    const quizResult = await QuizResult.findOne({
+      _id:      quizResultId,
+      company:  companyId,
+      training: trainingId,
+      employee: employeeId,
+    });
+
+    if (!quizResult) {
+      return res.status(404).json({ message: 'Quiz result not found for this company/training/employee' });
+    }
+
+    if (quizResult.consumed) {
+      return res.status(409).json({ message: 'This quiz result has already been submitted' });
+    }
+
+    // Use the SERVER-AUTHORITATIVE values — no client input here
+    const score  = quizResult.score;
+    const passed = quizResult.passed;
     const company = await Company.findById(companyId);
+    
     if (!company) {
       return res.status(404).json({ message: 'Company not found' });
     }
@@ -77,11 +95,15 @@ exports.submitSession = async (req, res) => {
       notes: notes || null,
     });
 
+    quizResult.consumed  = true;
+    quizResult.sessionId = session._id;
+    await quizResult.save();
+
     // Auto-compléter le milestone si l'employé a réussi
     if (resolvedEmployeeId && passed) {
-      const employee = await Employee.findById(resolvedEmployeeId);
-      if (employee) {
-        const milestone = employee.milestones.find(
+      const emp = await Employee.findById(resolvedEmployeeId);
+      if (emp) {
+        const milestone = emp.milestones.find(
           (m) =>
             m.type === 'training' &&
             m.module === training.title &&
@@ -91,7 +113,7 @@ exports.submitSession = async (req, res) => {
           milestone.status = 'completed';
           milestone.score = score;
           milestone.completedAt = end;
-          await employee.save();
+          await emp.save();
         }
       }
     }
