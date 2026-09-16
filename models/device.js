@@ -2,6 +2,15 @@ const mongoose = require('mongoose');
 
 const deviceSchema = new mongoose.Schema(
   {
+    transform: (doc, ret) => {
+    delete ret.deviceToken;
+    delete ret.deviceTokenPlain;
+    delete ret.deviceTokenPlainExpires;
+    delete ret.activationCode;
+    delete ret.activationCodeExpires;
+    delete ret.__v;
+    return ret;
+  },
     // ─── Identité du casque ───────────────────────────────────────────────────
     metaUserId: {
       type: String,
@@ -39,6 +48,7 @@ const deviceSchema = new mongoose.Schema(
     deviceToken: {
       type: String,
       default: null,
+      select: false,
     },
 
     // ─── Token brut temporaire (60s) — récupéré par Unity via checkDevice ────
@@ -46,10 +56,12 @@ const deviceSchema = new mongoose.Schema(
     deviceTokenPlain: {
       type: String,
       default: null,
+      select: false,
     },
     deviceTokenPlainExpires: {
       type: Date,
       default: null,
+      select: false,
     },
 
     // ─── Statut ───────────────────────────────────────────────────────────────

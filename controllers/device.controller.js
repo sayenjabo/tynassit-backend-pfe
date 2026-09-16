@@ -223,7 +223,8 @@ exports.getMyDevices = async (req, res) => {
   try {
     const companyId = req.user.id;
 
-    const devices = await Device.find({ company: companyId }).select('-deviceToken -activationCode');
+    const devices = await Device.find({ company: companyId })
+      .select('-deviceToken -deviceTokenPlain -deviceTokenPlainExpires -activationCode -activationCodeExpires');
 
     res.json({ devices });
   } catch (error) {
@@ -317,13 +318,13 @@ exports.adminActivateDevice = async (req, res) => {
 
 exports.getAllDevices = async (req, res) => {
   try {
-    const { companyId } = req.query; // filtre optionnel ?companyId=...
+    const { companyId } = req.query;
 
     const filter = {};
     if (companyId) filter.company = companyId;
 
     const devices = await Device.find(filter)
-      .select('-deviceToken -deviceTokenPlain -deviceTokenPlainExpires -activationCode')
+      .select('-deviceToken -deviceTokenPlain -deviceTokenPlainExpires -activationCode -activationCodeExpires')
       .populate('company', 'companyName email')
       .sort({ createdAt: -1 });
 
