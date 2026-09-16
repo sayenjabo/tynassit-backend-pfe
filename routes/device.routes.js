@@ -20,9 +20,6 @@ router.get('/trainings', deviceOnly, deviceController.getDeviceTrainings);
 
 router.use(protect, companyOnly);
 
-// Étape 2 — Admin entre le code d'activation → casque activé
-router.post('/activate', deviceController.activateDevice);
-
 // Lister tous les casques de l'entreprise
 router.get('/', deviceController.getMyDevices);
 
