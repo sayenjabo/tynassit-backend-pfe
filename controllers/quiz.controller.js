@@ -1,12 +1,11 @@
 const Quiz = require('../models/quiz');
-
+const QuizResult = require('../models/quizResult');
 // ─── GET quiz pour le casque — sans correctIndex ──────────────────────────────
 // protégé par deviceOnly
 
 exports.getQuizForDevice = async (req, res) => {
   try {
-    const { quizId, answers, employeeId } = req.params;
-    if (!employeeId) return res.status(400).json({ message: 'employeeId is required' });
+    const { trainingId } = req.params;
     const companyId = req.user.id;
 
     const quiz = await Quiz.findOne({
@@ -44,7 +43,7 @@ exports.getQuizForDevice = async (req, res) => {
 exports.submitQuiz = async (req, res) => {
   try {
     const companyId = req.user.id;
-    const { quizId, answers } = req.body;
+    const { quizId, answers, employeeId } = req.body;
 
     if (!quizId || !answers || !Array.isArray(answers)) {
       return res.status(400).json({ message: 'quizId and answers array are required' });
