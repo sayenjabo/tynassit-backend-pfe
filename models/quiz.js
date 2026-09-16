@@ -43,7 +43,6 @@ const quizSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Training',
       required: true,
-      unique: true, // une formation = un quiz maximum
     },
     company: {
       type: mongoose.Schema.Types.ObjectId,
@@ -76,4 +75,8 @@ const quizSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+quizSchema.index(
+  { training: 1, company: 1 },
+  { unique: true }
+);
 module.exports = mongoose.model('Quiz', quizSchema);

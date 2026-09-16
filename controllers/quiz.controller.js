@@ -45,8 +45,8 @@ exports.submitQuiz = async (req, res) => {
     const companyId = req.user.id;
     const { quizId, answers, employeeId } = req.body;
 
-    if (!quizId || !answers || !Array.isArray(answers)) {
-      return res.status(400).json({ message: 'quizId and answers array are required' });
+    if (!quizId || !employeeId || !Array.isArray(answers)) {
+      return res.status(400).json({message: 'quizId, employeeId and answers array are required'});
     }
 
     // Récupérer le quiz AVEC correctIndex cette fois
