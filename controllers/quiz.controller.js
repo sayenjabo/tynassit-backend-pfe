@@ -6,7 +6,8 @@ const Quiz = require('../models/quiz');
 exports.getQuizForDevice = async (req, res) => {
   try {
     const { quizId, answers, employeeId } = req.params;
-    const companyId = req.user.id; // extrait du token casque
+    if (!employeeId) return res.status(400).json({ message: 'employeeId is required' });
+    const companyId = req.user.id;
 
     const quiz = await Quiz.findOne({
       training: trainingId,
