@@ -21,8 +21,8 @@ const questionSchema = new mongoose.Schema(
     choices: {
       type: [choiceSchema],
       validate: {
-        validator: (arr) => arr.length >= 2 && arr.length <= 6,
-        message: 'A question must have between 2 and 6 choices',
+        validator: (arr) => arr.length >= 2 && arr.length <= 4,
+        message: 'A question must have between 2 and 4 choices',
       },
     },
     // Stocké en DB mais jamais retourné au casque via GET /quiz

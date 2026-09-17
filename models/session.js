@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const SessionCounter = require('./sessionCounter');
 
 const evaluationCriteriaSchema = new mongoose.Schema(
   {
@@ -50,14 +51,21 @@ const sessionSchema = new mongoose.Schema(
 
 // Auto-calculate attemptNumber — scoped per employee if present, else per company
 sessionSchema.pre('save', async function () {
-  if (this.isNew) {
-    const filter = this.employee
-      ? { employee: this.employee, training: this.training }
-      : { company: this.company, training: this.training };
+  if (!this.isNew || this.attemptNumber) return;
 
-    const count = await mongoose.model('Session').countDocuments(filter);
-    this.attemptNumber = count + 1;
-  }
+  const key = {
+    company:  this.company,
+    training: this.training,
+    employee: this.employee || null,
+  };
+
+  const counter = await SessionCounter.findOneAndUpdate(
+    key,
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  );
+
+  this.attemptNumber = counter.seq;
 });
 
 module.exports = mongoose.model('Session', sessionSchema);
