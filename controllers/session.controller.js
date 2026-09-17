@@ -99,21 +99,22 @@ exports.submitSession = async (req, res) => {
     quizResult.sessionId = session._id;
     await quizResult.save();
 
-    // Auto-compléter le milestone si l'employé a réussi
     if (resolvedEmployeeId && passed) {
-      const emp = await Employee.findById(resolvedEmployeeId);
-      if (emp) {
-        const milestone = emp.milestones.find(
-          (m) =>
-            m.type === 'training' &&
-            m.module === training.title &&
-            m.status !== 'completed'
-        );
+      const employee = await Employee.findById(resolvedEmployeeId);
+      if (employee) {
+        const milestone = employee.milestones.find((m) => {
+          if (m.type !== 'training' || m.status === 'completed') return false;
+          if (m.training) return m.training.toString() === trainingId;
+          return m.module === training.title;
+        });
+
         if (milestone) {
           milestone.status = 'completed';
           milestone.score = score;
           milestone.completedAt = end;
-          await emp.save();
+          // Backfill the training ref for future robustness
+          if (!milestone.training) milestone.training = training._id;
+          await employee.save();
         }
       }
     }

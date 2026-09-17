@@ -211,7 +211,7 @@ exports.loginWithCode = async (req, res) => {
 
 exports.addMilestone = async (req, res) => {
   try {
-    const { title, description, type, module } = req.body;
+    const { title, description, type, module, trainingId } = req.body;
 
     if (!title || !type) {
       return res.status(400).json({ message: 'Title and type are required' });
@@ -222,7 +222,23 @@ exports.addMilestone = async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
-    employee.milestones.push({ title, description: description || null, type, module: module || null });
+    let resolvedTrainingId = null;
+    let legacyModule = null;
+
+    if (type === 'training') {
+      resolvedTrainingId = trainingId || null;
+      legacyModule = module || null;
+    } else {
+      legacyModule = module || null;
+    }
+
+    employee.milestones.push({
+      title,
+      description: description || null,
+      type,
+      training: resolvedTrainingId,
+      module: legacyModule,
+    });
     await employee.save();
 
     const newMilestone = employee.milestones[employee.milestones.length - 1];
@@ -236,7 +252,8 @@ exports.getMilestones = async (req, res) => {
   try {
     const employee = await Employee
       .findOne({ _id: req.params.id, company: req.user.id })
-      .select('name milestones');
+      .select('name milestones')
+      .populate('milestones.training', 'title category');   // ← resolve training ref
 
     if (!employee) {
       return res.status(404).json({ message: 'Employee not found' });

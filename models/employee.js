@@ -26,6 +26,11 @@ const milestoneSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    training: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Training',
+      default: null,
+    },
     score: {
       type: Number,
       min: 0,
