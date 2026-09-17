@@ -2,15 +2,6 @@ const mongoose = require('mongoose');
 
 const deviceSchema = new mongoose.Schema(
   {
-    transform: (doc, ret) => {
-    delete ret.deviceToken;
-    delete ret.deviceTokenPlain;
-    delete ret.deviceTokenPlainExpires;
-    delete ret.activationCode;
-    delete ret.activationCodeExpires;
-    delete ret.__v;
-    return ret;
-  },
     // ─── Identité du casque ───────────────────────────────────────────────────
     metaUserId: {
       type: String,
@@ -81,4 +72,15 @@ const deviceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+deviceSchema.set('toJSON', {
+  transform: (doc, ret) => {
+    delete ret.deviceToken;
+    delete ret.deviceTokenPlain;
+    delete ret.deviceTokenPlainExpires;
+    delete ret.activationCode;
+    delete ret.activationCodeExpires;
+    delete ret.__v;
+    return ret;
+  },
+});
 module.exports = mongoose.model('Device', deviceSchema);
