@@ -61,9 +61,13 @@ exports.me = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const admin = await Admin.findById(decoded.id).select('-password');
+   const admin = await Admin.findById(decoded.id).select('-password');
     if (!admin) {
       return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    if (!admin.isActive) {
+      return res.status(403).json({ message: 'Your account has been deactivated' });
     }
 
     res.json({
