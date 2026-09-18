@@ -39,7 +39,7 @@ const sessionSchema = new mongoose.Schema(
     // ─── Result ───────────────────────────────────────────────────────────────
     score: { type: Number, min: 0, max: 100, required: true },
     passed: { type: Boolean, required: true },
-    attemptNumber: { type: Number, default: 1 },
+    attemptNumber: { type: Number, min: 1 },
 
     // ─── Evaluation Criteria ──────────────────────────────────────────────────
     evaluationCriteria: { type: [evaluationCriteriaSchema], default: [] },
@@ -51,7 +51,7 @@ const sessionSchema = new mongoose.Schema(
 
 // Auto-calculate attemptNumber — scoped per employee if present, else per company
 sessionSchema.pre('save', async function () {
-  if (!this.isNew || this.attemptNumber) return;
+  if (!this.isNew || this.attemptNumber != null) return;
 
   const key = {
     company:  this.company,
