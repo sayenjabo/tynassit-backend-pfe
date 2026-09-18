@@ -25,7 +25,7 @@ exports.submitSession = async (req, res) => {
       });
     }
 
-    // ─── Look up the server-computed quiz result ───────────────────────────
+        // ─── Load quiz result (for validation & score/passed) ──────────────────
     const quizResult = await QuizResult.findOne({
       _id:      quizResultId,
       company:  companyId,
@@ -38,6 +38,7 @@ exports.submitSession = async (req, res) => {
     }
 
     if (quizResult.consumed) {
+      // Fast path: already consumed by a previous request
       return res.status(409).json({ message: 'This quiz result has already been submitted' });
     }
 
@@ -82,22 +83,47 @@ exports.submitSession = async (req, res) => {
       return res.status(400).json({ message: 'completedAt must be after startedAt' });
     }
 
-    const session = await Session.create({
-      company: companyId,
-      training: trainingId,
-      employee: resolvedEmployeeId,
-      startedAt: start,
-      completedAt: end,
-      durationSeconds,
-      score,
-      passed,
-      evaluationCriteria: evaluationCriteria || [],
-      notes: notes || null,
-    });
+        // ─── Atomic claim — the race-protected critical section ────────────────
+    // findOneAndUpdate is a single atomic operation in MongoDB.
+    // Only ONE concurrent request can flip consumed:false → true.
+    const claimed = await QuizResult.findOneAndUpdate(
+      { _id: quizResultId, consumed: false },
+      { $set: { consumed: true } },
+      { new: true }
+    );
 
-    quizResult.consumed  = true;
-    quizResult.sessionId = session._id;
-    await quizResult.save();
+    if (!claimed) {
+      // Someone else consumed it between our read and now
+      return res.status(409).json({ message: 'This quiz result has already been submitted' });
+    }
+
+    // ─── Create session (we hold the exclusive claim) ──────────────────────
+    let session;
+    try {
+      session = await Session.create({
+        company: companyId,
+        training: trainingId,
+        employee: resolvedEmployeeId,
+        startedAt: start,
+        completedAt: end,
+        durationSeconds,
+        score,
+        passed,
+        evaluationCriteria: evaluationCriteria || [],
+        notes: notes || null,
+      });
+
+      // Link the session back to the quiz result
+      claimed.sessionId = session._id;
+      await claimed.save();
+    } catch (err) {
+      // Session creation failed — release the claim so the client can retry
+      await QuizResult.updateOne(
+        { _id: quizResultId, sessionId: null },
+        { $set: { consumed: false } }
+      );
+      throw err;
+    }
 
     if (resolvedEmployeeId && passed) {
       const employee = await Employee.findById(resolvedEmployeeId);
