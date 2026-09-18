@@ -76,7 +76,6 @@ const employeeSchema = new mongoose.Schema(
     // 001 = auto-incremented per company
     accessCode: {
       type: String,
-      unique: true,
       required: true,
     },
 
@@ -100,5 +99,7 @@ const employeeSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
+// ─── Unique per company ─────────────────────────────────────────────────────
+// Two different companies can have the same accessCode (e.g. both IC-001).
+employeeSchema.index({ company: 1, accessCode: 1 }, { unique: true });
 module.exports = mongoose.model('Employee', employeeSchema);
