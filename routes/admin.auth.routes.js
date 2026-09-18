@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const adminAuthController = require('../controllers/admin.auth.controller');
-const { protect, superAdminOnly } = require('../middleware/auth.middleware');
 const { protect, adminOnly, superAdminOnly } = require('../middleware/auth.middleware');
 // ─── Public ───────────────────────────────────────────────────────────────────
 

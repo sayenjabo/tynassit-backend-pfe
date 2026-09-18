@@ -217,19 +217,30 @@ exports.addMilestone = async (req, res) => {
       return res.status(400).json({ message: 'Title and type are required' });
     }
 
+     if (!['training', 'task'].includes(type)) {
+      return res.status(400).json({ message: 'Type must be "training" or "task"' });
+    }
+
+    if (type === 'training' && !trainingId) {
+      return res.status(400).json({ message: 'trainingId is required for type=training' });
+    }
+
     const employee = await Employee.findOne({ _id: req.params.id, company: req.user.id });
     if (!employee) {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
     let resolvedTrainingId = null;
-    let legacyModule = null;
-
     if (type === 'training') {
-      resolvedTrainingId = trainingId || null;
-      legacyModule = module || null;
-    } else {
-      legacyModule = module || null;
+      const Company = require('../models/company');
+      const company = await Company.findById(req.user.id);
+      const isAssigned = company?.assignedTrainings.some(
+        (id) => id.toString() === trainingId
+      );
+      if (!isAssigned) {
+        return res.status(403).json({ message: 'This training is not assigned to your company' });
+      }
+      resolvedTrainingId = trainingId;
     }
 
     employee.milestones.push({
@@ -237,7 +248,7 @@ exports.addMilestone = async (req, res) => {
       description: description || null,
       type,
       training: resolvedTrainingId,
-      module: legacyModule,
+      module: type === 'task' ? (module || null) : null,
     });
     await employee.save();
 
