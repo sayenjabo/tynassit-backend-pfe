@@ -154,7 +154,9 @@ exports.checkDevice = async (req, res) => {
       return res.status(400).json({ message: 'Meta User ID is required' });
     }
 
-    const device = await Device.findOne({ metaUserId }).populate('company', 'companyName isActive');
+    const device = await Device.findOne({ metaUserId })
+      .select('+deviceTokenPlain +deviceTokenPlainExpires')   // ← force-load hidden fields
+      .populate('company', 'companyName isActive');
 
     if (!device || !device.isActive) {
       return res.status(200).json({
@@ -170,10 +172,15 @@ exports.checkDevice = async (req, res) => {
       });
     }
 
-    // Retourner le token brut une seule fois si encore valide, puis l'effacer
+       // Hand over the plaintext token exactly once, then wipe it.
+    // Also wipe expired tokens so they never linger in the DB.
     let tokenToSend = null;
-    if (device.deviceTokenPlain && device.deviceTokenPlainExpires > new Date()) {
-      tokenToSend = device.deviceTokenPlain;
+    if (device.deviceTokenPlain) {
+      if (device.deviceTokenPlainExpires > new Date()) {
+        // Still valid — hand it over
+        tokenToSend = device.deviceTokenPlain;
+      }
+      // Wipe in both cases (valid → consumed, expired → stale)
       device.deviceTokenPlain = null;
       device.deviceTokenPlainExpires = null;
       await device.save();
