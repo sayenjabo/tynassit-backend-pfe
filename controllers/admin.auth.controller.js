@@ -94,7 +94,14 @@ exports.createSuperAdmin = async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(password, 12);
-    const admin = await Admin.create({ name, email, password: hashed, role: 'superadmin' });
+    const admin = await Admin.findById(decoded.id).select('-password');
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    if (!admin.isActive) {
+      return res.status(403).json({ message: 'Your account has been deactivated' });
+    }
 
     res.status(201).json({
       message: 'Superadmin created successfully',

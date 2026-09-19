@@ -21,11 +21,26 @@ exports.protect = (req, res, next) => {
 
 // ─── Restrict to admins only ──────────────────────────────────────────────────
 
-exports.adminOnly = (req, res, next) => {
+exports.adminOnly = async (req, res, next) => {
   if (req.user?.type !== 'admin') {
     return res.status(403).json({ message: 'Admin access required' });
   }
-  next();
+
+  try {
+    const Admin = require('../models/admin');
+    const admin = await Admin.findById(req.user.id).select('isActive');
+
+    if (!admin) {
+      return res.status(401).json({ message: 'Admin account no longer exists' });
+    }
+    if (!admin.isActive) {
+      return res.status(403).json({ message: 'Your account has been deactivated' });
+    }
+
+    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Auth check failed' });
+  }
 };
 
 // ─── Restrict to superadmin only ─────────────────────────────────────────────
@@ -39,11 +54,26 @@ exports.superAdminOnly = (req, res, next) => {
 
 // ─── Restrict to companies only ───────────────────────────────────────────────
 
-exports.companyOnly = (req, res, next) => {
+exports.companyOnly = async (req, res, next) => {
   if (req.user?.type !== 'company') {
     return res.status(403).json({ message: 'Company access required' });
   }
-  next();
+
+  try {
+    const Company = require('../models/company');
+    const company = await Company.findById(req.user.id).select('isActive');
+
+    if (!company) {
+      return res.status(401).json({ message: 'Company account no longer exists' });
+    }
+    if (!company.isActive) {
+      return res.status(403).json({ message: 'Your access has been suspended. Please contact Tynass.' });
+    }
+
+    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Auth check failed' });
+  }
 };
 
 // ─── Restrict to activated VR devices only ────────────────────────────────────
@@ -62,19 +92,24 @@ exports.deviceOnly = async (req, res, next) => {
       return res.status(403).json({ message: 'Device token required' });
     }
 
-    // Vérifier que le token n'a pas été révoqué en DB
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const device = await Device.findOne({
       metaUserId: decoded.metaUserId,
       deviceToken: hashedToken,
       isActive: true,
-    });
+    }).populate('company', 'isActive');
 
     if (!device) {
       return res.status(401).json({ message: 'Device not activated or has been revoked' });
     }
 
-    // Attacher les infos du device à la requête
+    // The device is active, but the company behind it might have been disabled.
+    if (!device.company || !device.company.isActive) {
+      return res.status(403).json({
+        message: 'Your company access has been suspended. Please contact Tynass.',
+      });
+    }
+
     req.user = { id: decoded.id, type: 'device' };
     req.device = device;
     next();
